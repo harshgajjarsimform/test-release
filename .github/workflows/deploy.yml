@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Release version to deploy, e.g. v1.2.3 (must already exist under Releases)"
+        required: true
+        type: string
+      region:
+        description: "Target region"
+        required: true
+        type: choice
+        options:
+          - US
+          - EU
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify release exists
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirm a GitHub Release exists for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::No GitHub Release found for tag '$TAG'. Only tags produced by the Release workflow may be deployed."
+            echo "::error::Check the Releases tab for valid, deployable versions."
+            exit 1
+          fi
+          echo "Confirmed: Release '$TAG' exists and is deployable."
+
+  deploy:
+    name: "Deploy to ${{ inputs.region }}"
+    runs-on: ubuntu-latest
+    needs: verify
+    environment: "production-${{ inputs.region == 'US' && 'us' || 'eu' }}"
+    steps:
+      - name: "Deploy (simulated)"
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          REGION="${{ inputs.region }}"
+          echo "Deploying release '$TAG' to region '$REGION'"
+          echo "----------------------------------------------"
+          echo "# What a real deploy step does here (kept as comments/echo for this test repo):"
+          echo "#   az login --service-principal ..."
+          echo "#   az aks get-credentials --resource-group rg-prod-$REGION --name prod-aks-$REGION"
+          echo "#   sed -i 's|IMAGE_TAG|'$TAG'|' k8s/prod-$REGION-app.yaml"
+          echo "#   kubectl apply -f k8s/prod-$REGION-app.yaml"
+          echo "----------------------------------------------"
+          echo "Deployment of $TAG to $REGION completed (simulated)."
+
+      - name: Summary
+        run: |
+          {
+            echo "## Deployed $IMAGE_TAG to $REGION"
+            echo ""
+            echo "- Approved via GitHub Environment: \`production-${REGION_LOWER}\`"
+            echo "- Triggered by: \`${{ github.actor }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          REGION: ${{ inputs.region }}
+          REGION_LOWER: ${{ inputs.region == 'US' && 'us' || 'eu' }}
