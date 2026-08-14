@@ -1,12 +1,14 @@
 name: Deploy
 
+# IMPORTANT: when running this workflow, use the "Use workflow from" ref-picker
+# on the "Run workflow" form and SELECT A TAG (e.g. v1.2.3) — do not dispatch
+# from a branch. GitHub's Environment "deployment branch/tag policy" (see
+# production-us / production-eu in repo Settings > Environments) enforces this
+# against the actual dispatch ref, not against any text typed into an input.
+# The version being deployed is read from that ref (github.ref_name) below.
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: "Release version to deploy, e.g. v1.2.3 (must already exist under Releases)"
-        required: true
-        type: string
       region:
         description: "Target region"
         required: true
@@ -26,11 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Confirm this run was dispatched from a release tag
+        run: |
+          if [ "${{ github.ref_type }}" != "tag" ]; then
+            echo "::error::This workflow must be run from a tag (e.g. v1.2.3), not a branch."
+            echo "::error::On the 'Run workflow' form, use 'Use workflow from' to pick the release tag you want to deploy."
+            exit 1
+          fi
+          echo "Dispatched from tag: ${{ github.ref_name }}"
+
       - name: Confirm a GitHub Release exists for this tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ inputs.image_tag }}"
+          TAG="${{ github.ref_name }}"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             echo "::error::No GitHub Release found for tag '$TAG'. Only tags produced by the Release workflow may be deployed."
             echo "::error::Check the Releases tab for valid, deployable versions."
@@ -46,7 +57,7 @@ jobs:
     steps:
       - name: "Deploy (simulated)"
         run: |
-          TAG="${{ inputs.image_tag }}"
+          TAG="${{ github.ref_name }}"
           REGION="${{ inputs.region }}"
           echo "Deploying release '$TAG' to region '$REGION'"
           echo "----------------------------------------------"
@@ -61,12 +72,12 @@ jobs:
       - name: Summary
         run: |
           {
-            echo "## Deployed $IMAGE_TAG to $REGION"
+            echo "## Deployed $TAG to $REGION"
             echo ""
             echo "- Approved via GitHub Environment: \`production-${REGION_LOWER}\`"
             echo "- Triggered by: \`${{ github.actor }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          TAG: ${{ github.ref_name }}
           REGION: ${{ inputs.region }}
           REGION_LOWER: ${{ inputs.region == 'US' && 'us' || 'eu' }}
