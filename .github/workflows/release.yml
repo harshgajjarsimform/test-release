@@ -39,6 +39,33 @@ jobs:
           fi
           echo "Tag $VERSION is unused, OK to proceed."
 
+      - name: Validate version is the next allowed increment
+        run: |
+          VERSION="${{ inputs.version }}"
+          git fetch --tags -q
+
+          LATEST="$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+
+          if [ -z "$LATEST" ]; then
+            echo "No existing release tags found — $VERSION is accepted as the first release."
+            exit 0
+          fi
+          echo "Latest existing release: $LATEST"
+
+          IFS='.' read -r L_MAJOR L_MINOR L_PATCH <<< "${LATEST#v}"
+          NEXT_PATCH="v${L_MAJOR}.${L_MINOR}.$((L_PATCH + 1))"
+          NEXT_MINOR="v${L_MAJOR}.$((L_MINOR + 1)).0"
+          NEXT_MAJOR="v$((L_MAJOR + 1)).0.0"
+
+          if [ "$VERSION" = "$NEXT_PATCH" ] || [ "$VERSION" = "$NEXT_MINOR" ] || [ "$VERSION" = "$NEXT_MAJOR" ]; then
+            echo "'$VERSION' is a valid next version after '$LATEST'."
+          else
+            echo "::error::'$VERSION' is not a valid next version after '$LATEST'."
+            echo "::error::Allowed next versions from here: $NEXT_PATCH (patch), $NEXT_MINOR (minor), or $NEXT_MAJOR (major)."
+            echo "::error::Skipping versions, going backwards, or releasing an unrelated version number is not allowed."
+            exit 1
+          fi
+
       - name: Validate dispatched ref is the current tip of main
         run: |
           git fetch origin main
