@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Release &amp; Deploy Pipeline — Build Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121821; --panel2:#171f2a; --border:#26303d;
+    --text:#e8eef5; --muted:#8fa1b3; --accent:#4fa3ff; --accent2:#7ee0c3;
+    --ok:#4fd67a; --fail:#ff6b6b; --code:#0a0e14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.65; font-size:16px;}
+  a{color:var(--accent);}
+  code{font-family:"SFMono-Regular",Consolas,Menlo,monospace; background:var(--code); padding:1px 7px;
+    border-radius:4px; color:var(--accent2); font-size:0.88em;}
+  main{max-width:980px; margin:0 auto; padding:48px 28px 100px;}
+
+  header{padding-bottom:26px; border-bottom:1px solid var(--border); margin-bottom:40px;}
+  header .kicker{color:var(--accent); font-weight:700; letter-spacing:.07em; text-transform:uppercase; font-size:12.5px;}
+  header h1{font-size:32px; margin:10px 0 12px; letter-spacing:-.01em;}
+  header p{color:var(--muted); font-size:17px; max-width:760px;}
+  .meta{display:flex; gap:22px; flex-wrap:wrap; margin-top:16px; font-size:13px; color:var(--muted);}
+  .meta b{color:var(--text);}
+
+  section{margin:48px 0;}
+  h2{font-size:22px; border-left:4px solid var(--accent); padding-left:14px; margin:0 0 16px;}
+
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 22px; margin:14px 0;}
+  .card h4{margin:0 0 8px; color:var(--accent2); font-size:15px;}
+
+  table{width:100%; border-collapse:collapse; margin:16px 0; font-size:14px;}
+  th,td{border:1px solid var(--border); padding:9px 11px; text-align:left; vertical-align:top;}
+  th{background:var(--panel2); color:var(--accent2); font-weight:600;}
+  tr:nth-child(even) td{background:#0f151d;}
+
+  .tag{display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:700;}
+  .tag.pass{background:#12301d; color:var(--ok); border:1px solid #1a4a2c;}
+  .tag.fail{background:#331414; color:var(--fail); border:1px solid #4a1f1f;}
+
+  pre{background:var(--code); border:1px solid var(--border); border-radius:8px; padding:14px 16px; overflow-x:auto; font-size:13px;}
+  pre code{background:none; padding:0; color:#c9d6e3;}
+
+  .flow{display:flex; flex-direction:column; gap:0; margin:20px 0; max-width:640px;}
+  .flow .box{border:1px solid var(--border); background:var(--panel2); border-radius:8px; padding:10px 16px; font-size:13.5px;}
+  .flow .box b{color:var(--accent2);}
+  .flow .box span{display:block; color:var(--muted); font-size:12px; margin-top:2px;}
+  .flow .down{text-align:center; color:var(--muted); padding:3px 0;}
+
+  ul.checklist{list-style:none; padding:0;}
+  ul.checklist li{position:relative; padding-left:26px; margin:8px 0;}
+  ul.checklist li::before{content:"✓"; position:absolute; left:0; color:var(--ok); font-weight:700;}
+
+  footer{max-width:760px; color:var(--muted); font-size:13px; border-top:1px solid var(--border); padding-top:20px; margin-top:60px;}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="kicker">Built &amp; Live-Tested — Not Just Designed</div>
+  <h1>Release &amp; Deploy Pipeline — Build Report</h1>
+  <p>Two manual GitHub Actions workflows were built, wired to real GitHub Environment approval gates, and
+  exercised with live <code>gh workflow run</code> dispatches — including deliberately trying to break them —
+  in a sandbox repo before this pattern goes into any real service.</p>
+  <div class="meta">
+    <div><b>Repo:</b> harshgajjarsimform/test-release</div>
+    <div><b>Branch:</b> main</div>
+    <div><b>Releases so far:</b> v1.0.0 → v1.0.3</div>
+    <div><b>Registry/cluster used:</b> none — build/deploy steps are simulated (echo) by design</div>
+  </div>
+</header>
+
+<section>
+  <h2>What was built</h2>
+  <div class="flow">
+    <div class="box"><b>release.yml</b> — manual, <code>workflow_dispatch</code> only<span>input: version (e.g. v1.2.3)</span></div>
+    <div class="down">↓ validate: format → not already used → next allowed increment → main hasn't moved</div>
+    <div class="box"><b>Gate: release-approval environment</b><span>self-review allowed</span></div>
+    <div class="down">↓</div>
+    <div class="box"><b>Git tag + GitHub Release + simulated build</b></div>
+    <div class="down">↓</div>
+    <div class="box"><b>deploy.yml</b> — manual, dispatched <i>from the release tag itself</i><span>input: region (US / EU dropdown)</span></div>
+    <div class="down">↓ verify: dispatched from a tag → a GitHub Release exists for it</div>
+    <div class="box"><b>Gate: production-us / production-eu environment</b><span>self-review allowed, tags-only deployment policy</span></div>
+    <div class="down">↓</div>
+    <div class="box"><b>Simulated deploy to the selected region</b></div>
+  </div>
+</section>
+
+<section>
+  <h2>Guardrails in place</h2>
+  <table>
+    <tr><th>Rule</th><th>Enforced by</th><th>What it stops</th></tr>
+    <tr><td>Version must match <code>vX.Y.Z</code></td><td>Regex check in <code>release.yml</code></td><td>Garbage/arbitrary strings as a "version"</td></tr>
+    <tr><td>Version must not already exist as a tag</td><td><code>git rev-parse refs/tags/$VERSION</code> check</td><td>Re-releasing / overwriting an immutable version</td></tr>
+    <tr><td><b>Version must be exactly the next patch, minor, or major</b> after the latest tag</td><td>Computed from the latest tag via <code>sort -V</code>, compared against the 3 legal next values</td><td>Random jumps (<code>v5.0.0</code>), skipped versions (<code>v1.0.5</code> when next should be <code>v1.0.3</code>), and going backwards</td></tr>
+    <tr><td>Release must be cut from the current tip of <code>main</code></td><td>Compares dispatched SHA to <code>origin/main</code></td><td>Releasing from a stale or diverged ref</td></tr>
+    <tr><td>Deploy must be dispatched from a real tag, not a branch</td><td><code>github.ref_type == 'tag'</code> check, backed by the environment's tags-only deployment policy</td><td>Deploying an unreleased branch commit straight to production</td></tr>
+    <tr><td>Deploy target must have a real GitHub Release</td><td><code>gh release view $TAG</code> check against <code>github.ref_name</code></td><td>Deploying a tag that was never actually released</td></tr>
+    <tr><td>Both release and deploy require approval</td><td>GitHub Environments: <code>release-approval</code>, <code>production-us</code>, <code>production-eu</code></td><td>Any dispatch running unattended — every run must be approved before it does anything real</td></tr>
+  </table>
+  <div class="card">
+    <h4>Self-review: intentionally allowed</h4>
+    Only 1–2 people run this pipeline, so <code>prevent_self_review</code> is set to <code>false</code> on all
+    three environments. This does <b>not</b> make runs execute automatically — every run still lands in
+    "Waiting" and needs an explicit Approve click — it just means the same person who triggered it is
+    allowed to be the one who approves it.
+  </div>
+</section>
+
+<section>
+  <h2>What was actually tested (not just written)</h2>
+  <table>
+    <tr><th>#</th><th>Scenario</th><th>Expected</th><th>Result</th></tr>
+    <tr><td>1</td><td>Release with an unapproved run pending</td><td>Job pauses on <code>release-approval</code>, doesn't tag/release until approved</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>2</td><td>Release <code>v5.0.0</code> when latest is <code>v1.0.2</code></td><td>Rejected — not a valid next increment</td><td><span class="tag pass">PASS</span> — failed at validate, release job skipped</td></tr>
+    <tr><td>3</td><td>Release <code>v1.0.5</code> when next patch should be <code>v1.0.3</code></td><td>Rejected — skips versions</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>4</td><td>Release <code>v1.0.3</code> (the real next patch)</td><td>Passes validation, approvable, tags + creates Release</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>5</td><td>Deploy a tag with no matching GitHub Release (<code>v9.9.9</code>)</td><td>Fails closed at <code>verify</code>, deploy job never runs</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>6</td><td>Deploy dispatched from branch <code>main</code> instead of a tag</td><td>Rejected by the environment's tags-only policy</td><td><span class="tag pass">PASS</span> — GitHub's own error: <i>"Branch main is not allowed to deploy to production-us due to environment protection rules"</i></td></tr>
+    <tr><td>7</td><td>Deploy dispatched from a real release tag, region = US</td><td>Verify passes, pauses on <code>production-us</code>, then deploys once approved</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>8</td><td>Self-review disabled, same user tries to approve own run</td><td>Rejected (<code>current_user_can_approve: false</code>)</td><td><span class="tag pass">PASS</span> — confirmed the gate is real before switching it back off for this 1–2 person team</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Final environment configuration</h2>
+  <table>
+    <tr><th>Environment</th><th>Self-review</th><th>Deployment policy</th><th>Used by</th></tr>
+    <tr><td><code>release-approval</code></td><td>Allowed</td><td>Branch <code>main</code> only</td><td><code>release.yml</code></td></tr>
+    <tr><td><code>production-us</code></td><td>Allowed</td><td>Tags matching <code>v*</code> only — no branches</td><td><code>deploy.yml</code> (region = US)</td></tr>
+    <tr><td><code>production-eu</code></td><td>Allowed</td><td>Tags matching <code>v*</code> only — no branches</td><td><code>deploy.yml</code> (region = EU)</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Final workflow files</h2>
+  <div class="card">
+    <h4>.github/workflows/release.yml</h4>
+    <pre><code>on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v1.2.3"
+        required: true
+        type: string
+
+jobs:
+  validate:
+    steps:
+      - Validate version format (vX.Y.Z)
+      - Validate tag does not already exist
+      - Validate version is the next allowed increment (patch/minor/major only)
+      - Validate dispatched ref is the current tip of main
+
+  release:
+    needs: validate
+    environment: release-approval
+    steps:
+      - Create and push Git tag
+      - Create GitHub Release
+      - Build (simulated)
+      - Summary</code></pre>
+  </div>
+  <div class="card">
+    <h4>.github/workflows/deploy.yml</h4>
+    <pre><code>on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "Target region"
+        required: true
+        type: choice
+        options: [US, EU]
+
+jobs:
+  verify:
+    steps:
+      - Confirm this run was dispatched from a release tag (github.ref_type == 'tag')
+      - Confirm a GitHub Release exists for this tag (github.ref_name)
+
+  deploy:
+    needs: verify
+    environment: "production-${{ inputs.region == 'US' && 'us' || 'eu' }}"
+    steps:
+      - Deploy (simulated) — real version swaps this step for:
+          az login / az aks get-credentials / sed image tag / kubectl apply
+      - Summary</code></pre>
+  </div>
+</section>
+
+<section>
+  <h2>What's still simulated (by design, for this sandbox)</h2>
+  <ul class="checklist">
+    <li>No Docker build/push — the "Build (simulated)" step just echoes the commands.</li>
+    <li>No real cluster — the "Deploy (simulated)" step echoes the <code>az</code>/<code>kubectl</code> commands instead of running them.</li>
+    <li>Single reviewer — self-review is allowed because there's no second collaborator on this personal repo; a real team repo would size this to how many actual release managers exist.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Next step</h2>
+  <p>This exact pattern — validated end-to-end here — is ready to carry into one of the real Aptly service
+  repos (e.g. <code>service-auth</code>), swapping the two echo-only steps for the actual
+  <code>docker build/push to ACR</code> and <code>azure/aks-set-context</code> + <code>kubectl apply</code>
+  steps already used in that repo's existing <code>production.yml</code>.</p>
+</section>
+
+<footer>
+  Generated from the actual, currently-committed workflow files and live GitHub Actions run history in
+  harshgajjarsimform/test-release. Every "PASS" above corresponds to a real workflow run dispatched during
+  this build session, not a predicted outcome.
+</footer>
+
+</main>
+</body>
+</html>

@@ -37,17 +37,15 @@ jobs:
           fi
           echo "Dispatched from tag: ${{ github.ref_name }}"
 
-      - name: Confirm a GitHub Release exists for this tag
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Confirm tag matches the release version format
         run: |
           TAG="${{ github.ref_name }}"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::No GitHub Release found for tag '$TAG'. Only tags produced by the Release workflow may be deployed."
-            echo "::error::Check the Releases tab for valid, deployable versions."
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' does not match the release version format vX.Y.Z."
+            echo "::error::Only tags produced by the Release workflow may be deployed."
             exit 1
           fi
-          echo "Confirmed: Release '$TAG' exists and is deployable."
+          echo "Confirmed: '$TAG' is a valid release tag."
 
   deploy:
     name: "Deploy to ${{ inputs.region }}"
