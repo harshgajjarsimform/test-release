@@ -81,7 +81,7 @@ jobs:
           REGION_LOWER: ${{ inputs.region == 'US' && 'us' || 'eu' }}
 
   deploy-2:
-    name: "Deploy to ${{ inputs.region }}"
+    name: "Deploy to"
     runs-on: ubuntu-latest
     needs: verify
     environment: "production-${{ inputs.region == 'US' && 'us' || 'eu' }}"
