@@ -91,7 +91,13 @@ jobs:
         with:
           fetch-depth: 0
 
-
+      - name: Create and push tag
+        run: |
+          FULL_TAG="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$FULL_TAG"
+          git push origin "$FULL_TAG"
           
 
       - name: "Build (simulated)"
