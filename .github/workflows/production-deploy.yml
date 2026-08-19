@@ -1,0 +1,34 @@
+name: Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Region to deploy (US or EU)'
+        required: true
+        type: choice
+        options:
+          - US
+          - EU
+
+jobs:
+  verify:
+    uses: AptlyDone/infrastructure/.github/workflows/verify-release-tag.yml@reusable-workflows
+    with:
+      tag-pattern: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+  deploy:
+    needs: verify
+    uses: AptlyDone/infrastructure/.github/workflows/deploy-to-aks.yml@reusable-workflows
+    with:
+      resource-group: "rg-prod-${{ github.event.inputs.region == 'US' && 'useast2' || 'northeu' }}"
+      cluster-name: "prod-aks-${{ github.event.inputs.region == 'US' && 'useast2' || 'northeu' }}"
+      manifest-path: ./k8s/prod-actions.yaml
+      image-tag: ${{ github.ref_name }}
+      environment: "production-${{ github.event.inputs.region == 'US' && 'us' || 'eu' }}"
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    secrets:
+      ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+      IMAGE_REPO: ${{ secrets.PROD_AKS_REPO }}
