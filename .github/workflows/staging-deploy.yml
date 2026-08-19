@@ -19,16 +19,9 @@ jobs:
 
   deploy:
     needs: verify
-    uses: AptlyDone/infrastructure/.github/workflows/deploy-to-aks.yml@reusable-workflows
-    with:
-      resource-group: "rg-stage-${{ github.event.inputs.region == 'US' && 'useast2' || 'northeu' }}"
-      cluster-name: "stage-aks-${{ github.event.inputs.region == 'US' && 'useast2' || 'northeu' }}"
-      manifest-path: ./k8s/stage-actions.yaml
-      image-tag: ${{ github.ref_name }}
-      environment: "staging-${{ github.event.inputs.region == 'US' && 'us' || 'eu' }}"
-      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-    secrets:
-      ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-      IMAGE_REPO: ${{ secrets.STAGING_AKS_REPO }}
+    runs-on: ubuntu-latest
+    environment: "production-${{ github.event.inputs.region == 'US' && 'us' || 'eu' }}"
+    steps:
+      - run: |
+          echo "Simulating deploy to ${{ github.event.inputs.region }}..."
+          echo "Applying manifest for image tag: ${{ github.ref_name }}"

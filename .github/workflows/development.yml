@@ -18,36 +18,20 @@ jobs:
 
   build:
     needs: notify-started
-    uses: AptlyDone/infrastructure/.github/workflows/docker-build-push.yml@reusable-workflows
-    with:
-      platforms: linux/arm64
-      image-tag: ${{ github.sha }}
-      build-args: |
-        NODE_ENV=development
-      cache-mode: gha
-      use-native-arm-runner: true
-      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-    secrets:
-      ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-      IMAGE_REPO: ${{ secrets.DEV_AKS_REPO }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Simulating docker build..."
+          echo "Building image for tag: ${{ github.sha }}"
 
   deploy:
     needs: build
-    uses: AptlyDone/infrastructure/.github/workflows/deploy-to-aks.yml@reusable-workflows
-    with:
-      resource-group: rg-dev
-      cluster-name: dev-aks
-      manifest-path: ./k8s/dev-actions.yaml
-      image-tag: ${{ github.sha }}
-      environment: development
-      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-    secrets:
-      ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-      IMAGE_REPO: ${{ secrets.DEV_AKS_REPO }}
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - run: |
+          echo "Simulating deploy..."
+          echo "Applying manifest for image tag: ${{ github.sha }}"
 
   notify-result:
     name: Notify — Pipeline Result
