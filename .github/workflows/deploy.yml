@@ -83,7 +83,7 @@ jobs:
   deploy-2:
     name: "Deploy to"
     runs-on: ubuntu-latest
-    needs: verify
+    needs: deploy
     environment: "production-${{ inputs.region == 'US' && 'us' || 'eu' }}"
     steps:
       - name: "Deploy (simulated)"
