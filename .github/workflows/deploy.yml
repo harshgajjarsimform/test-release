@@ -16,7 +16,16 @@ on:
         options:
           - US
           - EU
-
+      deploy_us:
+        description: "Deploy to US East 2"
+        type: boolean
+        required: true
+        default: true
+      deploy_eu:
+        description: "Deploy to North Europe"
+        type: boolean
+        required: true
+        default: true
 permissions:
   contents: read
 
