@@ -20,12 +20,12 @@ on:
         description: "Deploy to US East 2"
         type: boolean
         required: true
-        default: true
+        default: false
       deploy_eu:
         description: "Deploy to North Europe"
         type: boolean
         required: true
-        default: true
+        default: false
 permissions:
   contents: read
 
